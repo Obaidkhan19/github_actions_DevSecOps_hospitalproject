@@ -1,0 +1,59 @@
+@model AppointmentIndexViewModel
+@{
+    ViewData["Title"] = "Appointments";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Appointments</h1>
+    <a asp-action="Create" class="btn btn-primary">New appointment</a>
+</div>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-5">
+        <input name="search" value="@Model.Search" class="form-control" placeholder="Search by patient, doctor or reason" />
+    </div>
+    <div class="col-md-3">
+        <select name="status" class="form-select">
+            <option value="">All statuses</option>
+            @foreach (var s in Enum.GetValues<AppointmentStatus>())
+            {
+                <option value="@s" selected="@(Model.Status == s)">@s</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <input type="date" name="date" value="@(Model.Date?.ToString("yyyy-MM-dd"))" class="form-control" />
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-outline-secondary">Filter</button>
+        <a asp-action="Index" class="btn btn-link">Clear</a>
+    </div>
+</form>
+
+<table class="table table-hover bg-white align-middle">
+    <thead><tr><th>Date</th><th>Time</th><th>Patient</th><th>Doctor</th><th>Reason</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+    @foreach (var a in Model.Appointments)
+    {
+        var badge = a.Status switch
+        {
+            AppointmentStatus.Scheduled => "bg-primary",
+            AppointmentStatus.Completed => "bg-success",
+            _ => "bg-secondary"
+        };
+        <tr>
+            <td>@a.AppointmentDate.ToString("yyyy-MM-dd")</td>
+            <td>@a.AppointmentTime.ToString("HH:mm")</td>
+            <td>@(a.Patient!.FullName)</td>
+            <td>@(a.Doctor!.DisplayName)</td>
+            <td>@a.Reason</td>
+            <td><span class="badge @badge">@a.Status</span></td>
+            <td class="text-end"><a asp-action="Details" asp-route-id="@a.Id" class="btn btn-sm btn-outline-primary">View</a></td>
+        </tr>
+    }
+    @if (!Model.Appointments.Any())
+    {
+        <tr><td colspan="7" class="text-center text-muted py-4">No appointments found.</td></tr>
+    }
+    </tbody>
+</table>

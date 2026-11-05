@@ -1,0 +1,83 @@
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<h1 class="h3 mb-4">Dashboard</h1>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg">
+        <div class="card text-center shadow-sm"><div class="card-body">
+            <div class="display-6">@Model.TotalPatients</div>
+            <div class="text-muted">Registered patients</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-lg">
+        <div class="card text-center shadow-sm"><div class="card-body">
+            <div class="display-6">@Model.TotalDoctors</div>
+            <div class="text-muted">Doctors</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-lg">
+        <div class="card text-center shadow-sm"><div class="card-body">
+            <div class="display-6">@Model.TodaysAppointmentCount</div>
+            <div class="text-muted">Today's appointments</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-lg">
+        <div class="card text-center shadow-sm"><div class="card-body">
+            <div class="display-6">@Model.UpcomingAppointmentCount</div>
+            <div class="text-muted">Upcoming appointments</div>
+        </div></div>
+    </div>
+    <div class="col-12 col-lg">
+        <div class="card text-center shadow-sm"><div class="card-body">
+            <div class="display-6">@Model.CompletedAppointmentCount</div>
+            <div class="text-muted">Completed appointments</div>
+        </div></div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <h2 class="h5">Today's appointments</h2>
+        <table class="table table-hover bg-white align-middle">
+            <thead><tr><th>Time</th><th>Patient</th><th>Doctor</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var a in Model.TodaysAppointments)
+            {
+                <tr>
+                    <td>@a.AppointmentTime.ToString("HH:mm")</td>
+                    <td>@(a.Patient!.FullName)</td>
+                    <td>@(a.Doctor!.DisplayName)</td>
+                    <td>@a.Status</td>
+                    <td class="text-end"><a asp-controller="Appointments" asp-action="Details" asp-route-id="@a.Id" class="btn btn-sm btn-outline-primary">View</a></td>
+                </tr>
+            }
+            @if (!Model.TodaysAppointments.Any())
+            {
+                <tr><td colspan="5" class="text-center text-muted py-3">No appointments today.</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <div class="col-lg-5">
+        <h2 class="h5">Recent patient registrations</h2>
+        <table class="table table-hover bg-white align-middle">
+            <thead><tr><th>Patient</th><th>Registered</th></tr></thead>
+            <tbody>
+            @foreach (var p in Model.RecentPatients)
+            {
+                <tr>
+                    <td><a asp-controller="Patients" asp-action="Details" asp-route-id="@p.Id">@p.FullName</a></td>
+                    <td>@p.RegistrationDate.ToString("yyyy-MM-dd")</td>
+                </tr>
+            }
+            @if (!Model.RecentPatients.Any())
+            {
+                <tr><td colspan="2" class="text-center text-muted py-3">No patients yet.</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

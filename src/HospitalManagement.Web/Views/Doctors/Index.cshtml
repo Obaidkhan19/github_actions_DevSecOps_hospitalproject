@@ -1,0 +1,40 @@
+@model List<Doctor>
+@{
+    ViewData["Title"] = "Doctors";
+    var isAdmin = User.IsInRole(AppRoles.Admin);
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Doctors</h1>
+    @if (isAdmin)
+    {
+        <a asp-action="Create" class="btn btn-primary">Add doctor</a>
+    }
+</div>
+
+<table class="table table-hover bg-white align-middle">
+    <thead><tr><th>Name</th><th>Specialization</th><th>Department</th><th></th></tr></thead>
+    <tbody>
+    @foreach (var d in Model)
+    {
+        <tr>
+            <td>@d.DisplayName</td>
+            <td>@d.Specialization</td>
+            <td>@d.Department</td>
+            <td class="text-end text-nowrap">
+                @if (isAdmin)
+                {
+                    <a asp-action="Edit" asp-route-id="@d.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                    <form asp-action="Delete" asp-route-id="@d.Id" method="post" class="d-inline" onsubmit="return confirm('Delete this doctor?');">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                    </form>
+                }
+            </td>
+        </tr>
+    }
+    @if (!Model.Any())
+    {
+        <tr><td colspan="4" class="text-center text-muted py-4">No doctors yet.</td></tr>
+    }
+    </tbody>
+</table>

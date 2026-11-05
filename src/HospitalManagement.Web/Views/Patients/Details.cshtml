@@ -1,0 +1,49 @@
+@model Patient
+@{
+    ViewData["Title"] = Model.FullName;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">@Model.FullName</h1>
+    <div>
+        <a asp-controller="Appointments" asp-action="Create" asp-route-patientId="@Model.Id" class="btn btn-primary">New appointment</a>
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-secondary">Edit</a>
+        <a asp-action="Index" class="btn btn-link">Back</a>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Patient ID</dt><dd class="col-sm-9">@Model.Id</dd>
+            <dt class="col-sm-3">Date of birth</dt><dd class="col-sm-9">@Model.DateOfBirth.ToString("yyyy-MM-dd")</dd>
+            <dt class="col-sm-3">Gender</dt><dd class="col-sm-9">@Model.Gender</dd>
+            <dt class="col-sm-3">Phone</dt><dd class="col-sm-9">@Model.Phone</dd>
+            <dt class="col-sm-3">Email</dt><dd class="col-sm-9">@Model.Email</dd>
+            <dt class="col-sm-3">Address</dt><dd class="col-sm-9">@Model.Address</dd>
+            <dt class="col-sm-3">Registered</dt><dd class="col-sm-9">@Model.RegistrationDate.ToString("yyyy-MM-dd")</dd>
+        </dl>
+    </div>
+</div>
+
+<h2 class="h5">Appointments</h2>
+<table class="table table-hover bg-white align-middle">
+    <thead><tr><th>Date</th><th>Time</th><th>Doctor</th><th>Reason</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+    @foreach (var a in Model.Appointments.OrderByDescending(a => a.AppointmentDate).ThenByDescending(a => a.AppointmentTime))
+    {
+        <tr>
+            <td>@a.AppointmentDate.ToString("yyyy-MM-dd")</td>
+            <td>@a.AppointmentTime.ToString("HH:mm")</td>
+            <td>@(a.Doctor!.DisplayName)</td>
+            <td>@a.Reason</td>
+            <td>@a.Status</td>
+            <td class="text-end"><a asp-controller="Appointments" asp-action="Details" asp-route-id="@a.Id" class="btn btn-sm btn-outline-primary">View</a></td>
+        </tr>
+    }
+    @if (!Model.Appointments.Any())
+    {
+        <tr><td colspan="6" class="text-center text-muted py-3">No appointments yet.</td></tr>
+    }
+    </tbody>
+</table>

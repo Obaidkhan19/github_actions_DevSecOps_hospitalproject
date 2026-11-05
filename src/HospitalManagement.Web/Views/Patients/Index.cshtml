@@ -1,0 +1,50 @@
+@model List<Patient>
+@{
+    ViewData["Title"] = "Patients";
+    var search = ViewData["Search"] as string;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Patients</h1>
+    <a asp-action="Create" class="btn btn-primary">Register patient</a>
+</div>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col">
+        <input name="search" value="@search" class="form-control" placeholder="Search by name, email, phone or ID" />
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-outline-secondary">Search</button>
+        <a asp-action="Index" class="btn btn-link">Clear</a>
+    </div>
+</form>
+
+<table class="table table-hover bg-white align-middle">
+    <thead><tr><th>ID</th><th>Name</th><th>Date of birth</th><th>Phone</th><th>Email</th><th></th></tr></thead>
+    <tbody>
+    @foreach (var p in Model)
+    {
+        <tr>
+            <td>@p.Id</td>
+            <td>@p.FullName</td>
+            <td>@p.DateOfBirth.ToString("yyyy-MM-dd")</td>
+            <td>@p.Phone</td>
+            <td>@p.Email</td>
+            <td class="text-end text-nowrap">
+                <a asp-action="Details" asp-route-id="@p.Id" class="btn btn-sm btn-outline-primary">View</a>
+                <a asp-action="Edit" asp-route-id="@p.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                @if (User.IsInRole(AppRoles.Admin))
+                {
+                    <form asp-action="Delete" asp-route-id="@p.Id" method="post" class="d-inline" onsubmit="return confirm('Delete this patient?');">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                    </form>
+                }
+            </td>
+        </tr>
+    }
+    @if (!Model.Any())
+    {
+        <tr><td colspan="6" class="text-center text-muted py-4">No patients found.</td></tr>
+    }
+    </tbody>
+</table>

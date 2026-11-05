@@ -1,0 +1,15 @@
+# Build output
+bin/
+obj/
+
+# IDE
+.vs/
+.idea/
+*.user
+
+# Secrets and local settings - never commit these
+.env
+appsettings.Local.json
+
+# Test results
+TestResults/
