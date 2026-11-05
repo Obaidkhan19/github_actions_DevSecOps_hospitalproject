@@ -49,13 +49,15 @@ public class AppointmentService : IAppointmentService
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var term = search.Trim();
+            // Lower case on both sides, so the search ignores upper/lower case
+            // on every database (SQL Server and SQLite behave differently by default).
+            var term = search.Trim().ToLowerInvariant();
             query = query.Where(a =>
-                a.Patient!.FirstName.Contains(term) ||
-                a.Patient!.LastName.Contains(term) ||
-                a.Doctor!.FirstName.Contains(term) ||
-                a.Doctor!.LastName.Contains(term) ||
-                a.Reason.Contains(term));
+                a.Patient!.FirstName.ToLower().Contains(term) ||
+                a.Patient!.LastName.ToLower().Contains(term) ||
+                a.Doctor!.FirstName.ToLower().Contains(term) ||
+                a.Doctor!.LastName.ToLower().Contains(term) ||
+                a.Reason.ToLower().Contains(term));
         }
 
         return await query

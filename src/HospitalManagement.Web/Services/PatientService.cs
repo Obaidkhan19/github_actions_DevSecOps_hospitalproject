@@ -21,15 +21,17 @@ public class PatientService : IPatientService
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var term = search.Trim();
+            // Lower case on both sides, so the search ignores upper/lower case
+            // on every database (SQL Server and SQLite behave differently by default).
+            var term = search.Trim().ToLowerInvariant();
             var idTerm = int.TryParse(term, out var parsed) ? parsed : -1;
 
             query = query.Where(p =>
-                p.FirstName.Contains(term) ||
-                p.LastName.Contains(term) ||
-                (p.FirstName + " " + p.LastName).Contains(term) ||
-                p.Email.Contains(term) ||
-                p.Phone.Contains(term) ||
+                p.FirstName.ToLower().Contains(term) ||
+                p.LastName.ToLower().Contains(term) ||
+                (p.FirstName + " " + p.LastName).ToLower().Contains(term) ||
+                p.Email.ToLower().Contains(term) ||
+                p.Phone.ToLower().Contains(term) ||
                 p.Id == idTerm);
         }
 
