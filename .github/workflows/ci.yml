@@ -1,5 +1,5 @@
 name: CI
-#testing
+
 on:
   push:
   workflow_dispatch:
@@ -10,18 +10,11 @@ permissions:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-
+    timeout-minutes: 15
     steps:
-      - name: Get the code
-        uses: actions/checkout@v7
-
-      - name: Install .NET 10
-        uses: actions/setup-dotnet@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
-
-      - name: Build
-        run: dotnet build src/HospitalManagement.Web --configuration Release
-
-      - name: Test
-        run: dotnet test tests/HospitalManagement.Tests --configuration Release
+      - run: dotnet build src/HospitalManagement.Web --configuration Release
+      - run: dotnet test tests/HospitalManagement.Tests --configuration Release
