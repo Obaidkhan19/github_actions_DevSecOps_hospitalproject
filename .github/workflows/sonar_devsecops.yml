@@ -1,0 +1,88 @@
+# =====================================================================
+# FILE: trivy_devsecops.yml          (TRIVY SECURITY SCAN)
+# =====================================================================
+# 1. WHAT IT IS
+#    Trivy is a free security scanner. It reads the list of packages your
+#    project uses and compares it with a database of known vulnerabilities
+#    (CVEs) that is updated every day. It also looks for passwords and
+#    keys left in files. Later it can scan Docker images and Kubernetes
+#    files too.
+#
+# 2. HOW IT WORKS
+#    The project is built first, because the build writes *.deps.json
+#    files that list every package (also the hidden ones). Trivy reads
+#    them. Each finding has a severity: LOW, MEDIUM, HIGH or CRITICAL.
+#
+# 3. WHEN IT RUNS
+#    On every push, every Monday at 05:00 UTC, and on "Run workflow".
+#
+# 4. ONE-TIME SETUP
+#    None. No account, no token.
+#
+# 5. HOW TO USE / READ THE RESULT
+#    Open the run > the step "Trivy scan". It prints a table: package,
+#    installed version, the version that fixes it, and a link.
+#    Usual fix: update the package.
+#    If the step fails with "TOOMANYREQUESTS", Trivy's database download
+#    was rate limited. Just run it again later.
+#
+# 6. HOW TO MAKE IT STRICT
+#    Change exit-code from '0' to '1'. Then HIGH or CRITICAL findings turn
+#    the run red. It starts at '0' (report only) because your project has
+#    known findings in two packages today.
+#
+# 7. SAFETY NOTE ABOUT THE ACTION
+#    In March 2026 attackers moved the version tags of the Trivy action
+#    to malicious code. Version v0.36.0 is an "immutable release": its
+#    tag cannot be moved. The strongest protection is to pin the action
+#    to a full commit ID (SHA) that you copy from the releases page.
+#
+# 8. THIS FILE IS INDEPENDENT
+#    It does not need any other workflow file.
+# =====================================================================
+
+name: trivy_devsecops
+
+on:
+  push:
+  schedule:
+    - cron: "0 5 * * 1"      # every Monday, 05:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trivy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v7
+
+      - name: Install .NET 10
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      # Build so that the *.deps.json package lists exist.
+      - name: Build
+        run: dotnet build tests/HospitalManagement.Tests --configuration Release
+
+      # The scan.
+      #   scan-type fs        = scan the files in this folder
+      #   scanners            = vuln (known vulnerabilities) and secret (leaked keys)
+      #   severity            = only show HIGH and CRITICAL
+      #   ignore-unfixed      = hide problems that have no fix yet
+      #   exit-code '0'       = only report; '1' = fail the run when something is found
+      - name: Trivy scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: table
+          exit-code: '0'
