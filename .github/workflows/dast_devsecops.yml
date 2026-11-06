@@ -1,0 +1,150 @@
+# =====================================================================
+# FILE: dast_devsecops.yml           (DAST with OWASP ZAP)
+# =====================================================================
+# 1. WHAT IT IS
+#    DAST = Dynamic Application Security Testing. Instead of reading code
+#    (SAST), it attacks the RUNNING website from the outside, like a
+#    hacker would, and looks for problems such as missing security
+#    headers, unsafe cookies or information leaks.
+#    OWASP ZAP is the most popular free DAST tool.
+#
+# 2. HOW IT WORKS
+#    The job starts a temporary SQL Server container, starts your
+#    application against it, and then runs the ZAP "baseline scan":
+#    ZAP follows the links of the site (a spider) and checks every page
+#    it sees with PASSIVE rules only. Passive = it looks at the answers,
+#    it does not send attack payloads. So it is safe.
+#    The SQL Server password in this file belongs to a throwaway test
+#    database that exists only while the job runs. It is not a real secret.
+#
+# 3. WHEN IT RUNS
+#    By hand ("Run workflow") and every Monday at 06:00 UTC.
+#    It is slower than the other checks, so it does not run on every push.
+#
+# 4. ONE-TIME SETUP
+#    The migration files must be committed to Git (the folder
+#    src/HospitalManagement.Web/Data/Migrations). Check with:
+#      git ls-files | grep Migrations
+#    The workflow stops with a clear message if they are missing.
+#
+# 5. HOW TO USE / READ THE RESULT
+#    Open the run > "Artifacts" at the bottom > download "zap-report".
+#    Open report.html in a browser. Alerts are sorted by risk.
+#    LIMIT: this scan is NOT logged in, so ZAP only sees the public pages
+#    (the login page). A logged-in scan is a later, advanced step.
+#
+# 6. HOW TO MAKE IT STRICT
+#    Remove the "-I" at the end of the zap-baseline.py command. Then
+#    warnings also fail the run. Never point an ACTIVE ZAP scan
+#    (zap-full-scan.py) at a system that holds real data.
+#
+# 7. THIS FILE IS INDEPENDENT
+#    It does not need any other workflow file.
+# =====================================================================
+
+name: dast_devsecops
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"      # every Monday, 06:00 UTC
+
+permissions:
+  contents: read
+
+jobs:
+  zap-baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    # A second container that lives next to the job: the test database.
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: "Ci-Throwaway-Pass-1!"
+        ports:
+          - 1433:1433
+        # GitHub waits until this health command succeeds, so SQL Server is ready.
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'Ci-Throwaway-Pass-1!' -Q 'SELECT 1' -b"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+          --health-start-period 20s
+
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v7
+
+      - name: Install .NET 10
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      # Stop early, with a clear message, if the migrations are not in Git.
+      - name: Check that migration files exist
+        run: |
+          if ! ls src/HospitalManagement.Web/Data/Migrations/*.cs > /dev/null 2>&1; then
+            echo "::error::No migration files found in src/HospitalManagement.Web/Data/Migrations. Commit them first."
+            exit 1
+          fi
+
+      # Start the website in the background. The settings are environment
+      # variables, exactly as on a real server. The database tables are created
+      # at start-up (Database__MigrateOnStartup) and sample data is added.
+      - name: Start the application
+        env:
+          ConnectionStrings__DefaultConnection: "Server=localhost,1433;Database=HospitalDB_DAST;User Id=sa;Password=Ci-Throwaway-Pass-1!;TrustServerCertificate=True;"
+          Hospital__Name: "DAST Test Hospital"
+          Database__MigrateOnStartup: "true"
+          Seed__AdminEmail: "admin@example.com"
+          Seed__AdminPassword: "Ci-Throwaway-Pass-1!"
+          Seed__SampleData: "true"
+          ASPNETCORE_URLS: "http://localhost:5000"
+        run: |
+          nohup dotnet run --project src/HospitalManagement.Web --configuration Release > app.log 2>&1 &
+
+      # Wait until the /health page answers (up to 5 minutes).
+      - name: Wait until the application is ready
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fs http://localhost:5000/health > /dev/null; then
+              echo "The application is ready."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::The application did not start in time."
+          cat app.log
+          exit 1
+
+      # The ZAP baseline scan, run from the official ZAP Docker image.
+      #   --network host   = the container can reach localhost:5000
+      #   -v ...:/zap/wrk  = the folder where ZAP writes its reports
+      #   -t               = the target website
+      #   -m 2             = spider the site for 2 minutes
+      #   -r / -J          = HTML and JSON report
+      #   -I               = do not fail the run on warnings (report only)
+      - name: Run the ZAP baseline scan
+        run: |
+          mkdir -p zap-report
+          chmod 777 zap-report
+          docker run --rm --network host \
+            -v "$PWD/zap-report:/zap/wrk/:rw" \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap-baseline.py -t http://localhost:5000 -m 2 -r report.html -J report.json -I
+
+      # Keep the reports, even if an earlier step failed.
+      - name: Save the ZAP report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: zap-report
+          path: zap-report/
+
+      # If something went wrong, show the application log.
+      - name: Show the application log on failure
+        if: failure()
+        run: cat app.log
