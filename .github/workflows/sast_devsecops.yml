@@ -1,0 +1,72 @@
+# =====================================================================
+# FILE: sast_devsecops.yml           (SAST with GitHub CodeQL)
+# =====================================================================
+# 1. WHAT IT IS
+#    SAST = Static Application Security Testing. A tool reads your source
+#    code WITHOUT running it and looks for security weaknesses, for
+#    example SQL injection or unsafe handling of user input.
+#    CodeQL is GitHub's own SAST tool. It turns the code into a database
+#    and asks it security questions (queries).
+#
+# 2. HOW IT WORKS
+#    "init" prepares CodeQL for C#. "analyze" runs the queries and sends
+#    the findings to GitHub. build-mode "none" means CodeQL reads the
+#    source code directly, so no build step is needed.
+#
+# 3. WHEN IT RUNS
+#    On every push, every Monday at 03:00 UTC, and on "Run workflow".
+#
+# 4. ONE-TIME SETUP
+#    - Free for PUBLIC repositories. A private repository needs the paid
+#      "GitHub Code Security" product, otherwise the upload step fails.
+#    - If you switched on "Default setup" for code scanning in
+#      Settings > Advanced Security, switch it OFF. Two setups conflict.
+#
+# 5. HOW TO USE / READ THE RESULT
+#    Repository > Security tab > "Code scanning". Every finding shows the
+#    file, the line, a severity and an explanation of how to fix it.
+#
+# 6. HOW TO MAKE IT STRICT
+#    Branch protection (Settings > Branches) can require code scanning
+#    results before a merge. Later you can block merges on high findings.
+#
+# 7. THIS FILE IS INDEPENDENT
+#    It does not need any other workflow file.
+# =====================================================================
+
+name: sast_devsecops
+
+on:
+  push:
+  schedule:
+    - cron: "0 20 * * 4"      # every Monday, 03:00 UTC (new rules appear over time)
+  workflow_dispatch:
+
+# CodeQL must be allowed to write its findings to the Security tab.
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+jobs:
+  codeql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v7
+
+      # Prepare CodeQL. "security-extended" = the normal security queries plus more.
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: csharp
+          build-mode: none
+          queries: security-extended
+
+      # Run the analysis and upload the findings to the Security tab.
+      - name: Analyze
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:csharp"
