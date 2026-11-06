@@ -49,7 +49,7 @@ permissions:
   security-events: write
 
 jobs:
-  codeql:
+  codeql:  # this is used to security quality of code GitHub CodeQL is a SAST (Static Application Security Testing) tool.
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
