@@ -37,7 +37,7 @@
 name: sast_devsecops
 
 on:
-  push:
+  push: # it will run on push and also at that time
   schedule:
     - cron: "0 20 * * 4"      # every Monday, 03:00 UTC (new rules appear over time)
   workflow_dispatch:

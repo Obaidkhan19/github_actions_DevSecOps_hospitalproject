@@ -40,10 +40,10 @@
 name: dependency_devsecops
 
 on:
-  push:
+  push:  # it will run on push and also at that time
   schedule:
     - cron: "40 20 * * 5"      # every Monday, 04:00 UTC
-  workflow_dispatch:
+ # workflow_dispatch:
 
 permissions:
   contents: read
