@@ -55,6 +55,7 @@ permissions:
 jobs:
   sonarcloud:
     runs-on: ubuntu-latest
+    environment: sonarcloud
     timeout-minutes: 30
     env:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
