@@ -1,88 +1,102 @@
 # =====================================================================
-# FILE: trivy_devsecops.yml          (TRIVY SECURITY SCAN)
+# FILE: sonar_devsecops.yml          (SONARCLOUD ANALYSIS)
 # =====================================================================
 # 1. WHAT IT IS
-#    Trivy is a free security scanner. It reads the list of packages your
-#    project uses and compares it with a database of known vulnerabilities
-#    (CVEs) that is updated every day. It also looks for passwords and
-#    keys left in files. Later it can scan Docker images and Kubernetes
-#    files too.
+#    SonarCloud (now called SonarQube Cloud) is a website that analyses
+#    your C# code and shows bugs, security weaknesses, "code smells"
+#    (messy code), duplicated code and test coverage on a dashboard.
 #
 # 2. HOW IT WORKS
-#    The project is built first, because the build writes *.deps.json
-#    files that list every package (also the hidden ones). Trivy reads
-#    them. Each finding has a severity: LOW, MEDIUM, HIGH or CRITICAL.
+#    The scanner works in three parts:
+#      begin  = tell SonarCloud that an analysis starts
+#      build  = build the code (everything built between begin and end
+#               is analysed)
+#      end    = send the results to sonarcloud.io
+#    SonarCloud then judges the result with a "quality gate" (a pass or
+#    fail rule) and shows it on the website.
 #
 # 3. WHEN IT RUNS
-#    On every push, every Monday at 05:00 UTC, and on "Run workflow".
+#    On every push, and on "Run workflow".
 #
-# 4. ONE-TIME SETUP
-#    None. No account, no token.
+# 4. ONE-TIME SETUP (do this BEFORE the first run)
+#    a) Log in at sonarcloud.io with GitHub and import this repository.
+#       Choose the analysis method "With GitHub Actions" and switch
+#       "Automatic Analysis" OFF.
+#    b) Copy the Organization key and the Project key from SonarCloud.
+#    c) In SonarCloud: My Account > Security > Generate Token. Copy it.
+#    d) In GitHub: Settings > Secrets and variables > Actions:
+#         Secrets   tab:  SONAR_TOKEN         = the token
+#         Variables tab:  SONAR_ORGANIZATION  = the organization key
+#         Variables tab:  SONAR_PROJECT_KEY   = the project key
 #
 # 5. HOW TO USE / READ THE RESULT
-#    Open the run > the step "Trivy scan". It prints a table: package,
-#    installed version, the version that fixes it, and a link.
-#    Usual fix: update the package.
-#    If the step fails with "TOOMANYREQUESTS", Trivy's database download
-#    was rate limited. Just run it again later.
+#    Open your project on sonarcloud.io. The first run will probably show
+#    a failed quality gate, mainly because test coverage is not sent yet.
+#    That is expected, and the workflow still stays green.
 #
 # 6. HOW TO MAKE IT STRICT
-#    Change exit-code from '0' to '1'. Then HIGH or CRITICAL findings turn
-#    the run red. It starts at '0' (report only) because your project has
-#    known findings in two packages today.
+#    Add this line to the "begin" command below:
+#      /d:sonar.qualitygate.wait=true
+#    Then a failed quality gate turns the run red.
 #
-# 7. SAFETY NOTE ABOUT THE ACTION
-#    In March 2026 attackers moved the version tags of the Trivy action
-#    to malicious code. Version v0.36.0 is an "immutable release": its
-#    tag cannot be moved. The strongest protection is to pin the action
-#    to a full commit ID (SHA) that you copy from the releases page.
-#
-# 8. THIS FILE IS INDEPENDENT
+# 7. THIS FILE IS INDEPENDENT
 #    It does not need any other workflow file.
 # =====================================================================
 
-name: trivy_devsecops
+name: sonar_devsecops
 
 on:
   push:
-  schedule:
-    - cron: "0 5 * * 1"      # every Monday, 05:00 UTC
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  trivy:
+  sonarcloud:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
     steps:
+      # fetch-depth 0 = full history. SonarCloud needs it to know which lines are new.
       - name: Get the code
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Install .NET 10
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
 
-      # Build so that the *.deps.json package lists exist.
+      # A friendly error if the one-time setup is not finished.
+      - name: Check the SonarCloud settings
+        run: |
+          missing=0
+          if [ -z "$SONAR_TOKEN" ]; then echo "::error::The secret SONAR_TOKEN is missing."; missing=1; fi
+          if [ -z "${{ vars.SONAR_ORGANIZATION }}" ]; then echo "::error::The variable SONAR_ORGANIZATION is missing."; missing=1; fi
+          if [ -z "${{ vars.SONAR_PROJECT_KEY }}" ]; then echo "::error::The variable SONAR_PROJECT_KEY is missing."; missing=1; fi
+          exit $missing
+
+      # Install the SonarCloud scanner (a command-line tool).
+      - name: Install SonarScanner for .NET
+        run: dotnet tool install --global dotnet-sonarscanner
+
+      # BEGIN: tell SonarCloud that an analysis starts.
+      - name: Start analysis
+        run: |
+          dotnet sonarscanner begin \
+            /k:"${{ vars.SONAR_PROJECT_KEY }}" \
+            /o:"${{ vars.SONAR_ORGANIZATION }}" \
+            /d:sonar.token="$SONAR_TOKEN" \
+            /d:sonar.host.url="https://sonarcloud.io"
+
+      # BUILD: the tests project also builds the web project.
       - name: Build
         run: dotnet build tests/HospitalManagement.Tests --configuration Release
 
-      # The scan.
-      #   scan-type fs        = scan the files in this folder
-      #   scanners            = vuln (known vulnerabilities) and secret (leaked keys)
-      #   severity            = only show HIGH and CRITICAL
-      #   ignore-unfixed      = hide problems that have no fix yet
-      #   exit-code '0'       = only report; '1' = fail the run when something is found
-      - name: Trivy scan
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          scan-type: fs
-          scan-ref: .
-          scanners: vuln,secret
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          format: table
-          exit-code: '0'
+      # END: send the results to SonarCloud.
+      - name: Finish analysis
+        run: dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"
