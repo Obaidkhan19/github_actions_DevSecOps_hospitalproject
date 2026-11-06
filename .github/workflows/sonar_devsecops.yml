@@ -28,7 +28,7 @@
 #         Secrets   tab:  SONAR_TOKEN         = the token
 #         Variables tab:  SONAR_ORGANIZATION  = the organization key
 #         Variables tab:  SONAR_PROJECT_KEY   = the project key
-#
+# done
 # 5. HOW TO USE / READ THE RESULT
 #    Open your project on sonarcloud.io. The first run will probably show
 #    a failed quality gate, mainly because test coverage is not sent yet.
@@ -38,7 +38,7 @@
 #    Add this line to the "begin" command below:
 #      /d:sonar.qualitygate.wait=true
 #    Then a failed quality gate turns the run red.
-#
+# 
 # 7. THIS FILE IS INDEPENDENT
 #    It does not need any other workflow file.
 # =====================================================================
