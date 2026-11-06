@@ -1,0 +1,93 @@
+# =====================================================================
+# FILE: dependency_devsecops.yml     (DEPENDENCY SCANNING)
+# =====================================================================
+# 1. WHAT IT IS
+#    Your project uses many NuGet packages written by other people. This
+#    check asks NuGet: "does any package version I use have a publicly
+#    known vulnerability (a CVE)?" This is also called SCA (Software
+#    Composition Analysis).
+#
+# 2. HOW IT WORKS
+#    "dotnet list package --vulnerable --include-transitive" is a tool
+#    already inside the .NET SDK. --include-transitive also checks the
+#    packages that your packages use (the hidden ones).
+#    The result changes over time even when your code does not, because
+#    new vulnerabilities are discovered every week. That is why this file
+#    also runs on a weekly schedule.
+#
+# 3. WHEN IT RUNS
+#    On every push, every Monday at 04:00 UTC, and on "Run workflow".
+#
+# 4. ONE-TIME SETUP
+#    None.
+#
+# 5. HOW TO USE / READ THE RESULT
+#    Open the run. The summary page shows the vulnerable packages, the
+#    installed version, the severity and a link. The usual fix is to
+#    update the package to a newer version. (Dependabot can open those
+#    update pull requests for you: see dependabot.yml.)
+#
+# 6. HOW TO MAKE IT STRICT
+#    Change FAIL_ON_VULNERABILITIES below from "false" to "true". Then
+#    any vulnerable package turns the run red.
+#    It starts as "false" because your project already has a few known
+#    findings, and a red pipeline from day one would only be noise.
+#
+# 7. THIS FILE IS INDEPENDENT
+#    It does not need any other workflow file.
+# =====================================================================
+
+name: dependency_devsecops
+
+on:
+  push:
+  schedule:
+    - cron: "40 20 * * 5"      # every Monday, 04:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FAIL_ON_VULNERABILITIES: "false"   # "true" = fail the run when something is found
+
+jobs:
+  dependency-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v7
+
+      - name: Install .NET 10
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      # Check both projects and keep the output in audit.txt.
+      - name: List vulnerable packages
+        run: |
+          : > audit.txt
+          for project in src/HospitalManagement.Web tests/HospitalManagement.Tests; do
+            echo "=== $project ===" | tee -a audit.txt
+            dotnet restore "$project" > /dev/null
+            dotnet list "$project" package --vulnerable --include-transitive | tee -a audit.txt
+          done
+
+      # Decide: found something? Write it on the summary page, and fail if strict.
+      - name: Report the result
+        run: |
+          if grep -q "has the following vulnerable packages" audit.txt; then
+            echo "### Vulnerable packages found" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            cat audit.txt >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "Vulnerable packages were found (see the summary page of this run)."
+            if [ "$FAIL_ON_VULNERABILITIES" = "true" ]; then
+              exit 1
+            fi
+          else
+            echo "### No vulnerable packages found" >> "$GITHUB_STEP_SUMMARY"
+            echo "No vulnerable packages found."
+          fi
