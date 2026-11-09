@@ -5,6 +5,8 @@
 #    SonarCloud (now called SonarQube Cloud) is a website that analyses
 #    your C# code and shows bugs, security weaknesses, "code smells"
 #    (messy code), duplicated code and test coverage on a dashboard.
+
+# it has rules for each language scan the code and check if code break any rules 
 #
 # 2. HOW IT WORKS
 #    The scanner works in three parts:
@@ -28,6 +30,7 @@
 #         Secrets   tab:  SONAR_TOKEN         = the token
 #         Variables tab:  SONAR_ORGANIZATION  = the organization key
 #         Variables tab:  SONAR_PROJECT_KEY   = the project key
+        # add environment name same as in github as written down 
 # done
 # 5. HOW TO USE / READ THE RESULT
 #    Open your project on sonarcloud.io. The first run will probably show
@@ -41,6 +44,7 @@
 # 
 # 7. THIS FILE IS INDEPENDENT
 #    It does not need any other workflow file.
+
 # =====================================================================
 
 name: sonar_devsecops
