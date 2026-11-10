@@ -1,0 +1,69 @@
+we implemented multi stage docker build
+2 image 2 container
+
+Docker Volumes are better for persistent application data. Bind Mounts are better for development.
+
+
+Docker named volume is  implemented
+
+in host  =   /var/lib/docker/volumes/hospital_sqldata/_data
+
+
+
+push images to docker hub
+
+ update docker-compose.yml. replace the local Docker build with your Docker Hub image mukhann/hospital-web:v1. 
+ 
+
+
+BACKUP AND RESTORE
+
+docker exec -it hospital-db-1 /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa
+
+BACKUP DATABASE [HospitalDB]
+TO DISK = '/var/opt/mssql/backup/HospitalDB.bak'
+WITH INIT;
+GO
+
+EXIT
+
+docker cp hospital-db-1:/var/opt/mssql/backup/HospitalDB.bak ./backups/HospitalDB.bak
+ls -lh backups/
+
+
+RESTORE
+
+docker exec -it hospital-db-1 /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa
+
+
+1> RESTORE DATABASE [HospitalDB_RestoreTest]
+2> FROM DISK = '/var/opt/mssql/backup/HospitalDB.bak'
+3> WITH
+4> MOVE 'HospitalDB' TO '/var/opt/mssql/data/HospitalDB_RestoreTest.mdf',
+5> MOVE 'HospitalDB_log' TO '/var/opt/mssql/data/HospitalDB_RestoreTest_log.ldf',
+6> RECOVERY;
+7> GO
+
+1> SELECT name FROM sys.databases;
+2> GO
+
+
+
+
+IMAGE VERSIONS
+
+mukhann/hospital-web:v1
+mukhann/hospital-web:v2
+
+change code login 
+
+make new VERSIONS
+new image =docker build --target final -t mukhann/hospital-web:v2 .
+push on docker hub = docker push mukhann/hospital-web:v2
+
+change docker-compose.yml
+web:
+  image: mukhann/hospital-web:v2
+  pull_policy: always
+
+  docker compose up -d

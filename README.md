@@ -62,3 +62,33 @@ Implemented independent GitHub Actions workflows to automate build validation, c
 The objective of this project is to demonstrate how security can be integrated throughout the software development lifecycle rather than being treated as a final step.
 
 It combines automated CI, source-code analysis, secret detection, dependency vulnerability checks, dynamic security testing, and filesystem scanning to establish a practical DevSecOps workflow for a .NET application.
+
+
+
+## Docker Implementation
+
+### Containerization
+- Implemented a multi-stage Docker build for the ASP.NET Core Hospital Management application.
+- Configured two Docker images and two containers: Hospital Web and SQL Server Database.
+- Configured Docker Compose to manage the application services.
+
+### Persistent Storage
+- Implemented Docker named volumes for persistent data:
+  - `hospital_sqldata` – SQL Server database files.
+  - `hospital_dpkeys` – ASP.NET Core Data Protection keys.
+- SQL Server volume host location: `/var/lib/docker/volumes/hospital_sqldata/_data`.
+- Docker volumes are better for persistent application data, while bind mounts are generally better for development workflows.
+
+### Docker Hub
+- Published the Hospital Web image to Docker Hub.
+- Configured Docker Compose to pull and run the published image instead of building it locally.
+- Implemented image versioning:
+  - `mukhann/hospital-web:v1`
+  - `mukhann/hospital-web:v2`
+- Tested updating the application, building a new image version, pushing it to Docker Hub and deploying the updated version through Docker Compose.
+
+### Database Backup and Restore
+- Implemented SQL Server database backup using `.bak` files.
+- Copied database backups from the SQL Server container to the Ubuntu host.
+- Successfully restored the backup into a separate test database named `HospitalDB_RestoreTest`.
+- Verified that both the original and restored databases were available.

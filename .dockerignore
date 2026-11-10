@@ -1,0 +1,38 @@
+# =====================================================================
+# FILE: .dockerignore            (REPO ROOT, next to the Dockerfile)
+# =====================================================================
+# Works like .gitignore, but for Docker. When you run "docker build .",
+# Docker first packs the whole folder into a "build context" and sends it
+# to the builder. Everything listed here is left out of that package:
+#   - faster builds (less to send)
+#   - better caching (a changed README does not break the cache)
+#   - safer (secrets never get a chance to land inside an image)
+# More: docs/docker/02-build-multistage-optimize.md and 03-security.md
+# =====================================================================
+
+# Build output - the container builds its own
+**/bin/
+**/obj/
+TestResults/
+
+# Git and CI files - not needed to build the app
+.git/
+.github/
+.gitignore
+
+# SECRETS and local settings - must never end up inside an image
+.env*
+**/appsettings.Local.json
+**/appsettings.example.json
+
+# Editor files
+.vs/
+.idea/
+*.user
+
+# Docker's own files and documentation - not part of the app
+Dockerfile
+.dockerignore
+docker-compose*.yml
+docs/
+*.md

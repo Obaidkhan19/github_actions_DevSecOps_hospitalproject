@@ -1,0 +1,136 @@
+
+# =====================================================================
+# FILE: docker-compose.yml
+# Hospital Management Application
+# Image pulled from Docker Hub
+# =====================================================================
+
+name: hospital
+
+# Shared logging configuration
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+
+  # -------------------------------------------------------------------
+  # SERVICE 1: SQL Server Database
+  # -------------------------------------------------------------------
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    restart: unless-stopped
+
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Please set MSSQL_SA_PASSWORD in your .env file}
+
+    volumes:
+      - sqldata:/var/opt/mssql
+
+    networks:
+      - backend
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -Q "SELECT 1" -b > /dev/null
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+    logging: *default-logging
+
+  # -------------------------------------------------------------------
+  # SERVICE 2: Hospital Web Application
+  # Docker Hub image instead of local build
+  # -------------------------------------------------------------------
+  web:
+    image: mukhann/hospital-web:v2
+    pull_policy: always
+    restart: unless-stopped
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+
+    environment:
+      ConnectionStrings__DefaultConnection: "Server=db,1433;Database=${DB_NAME:-HospitalDB};User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;"
+      Hospital__Name: ${HOSPITAL_NAME:-Demo Hospital}
+      Database__MigrateOnStartup: ${MIGRATE_ON_STARTUP:-true}
+      Security__SecureCookies: ${SECURE_COOKIES:-false}
+      Seed__AdminEmail: ${SEED_ADMIN_EMAIL:-}
+      Seed__AdminPassword: ${SEED_ADMIN_PASSWORD:-}
+      Seed__SampleData: ${SEED_SAMPLE_DATA:-false}
+
+    volumes:
+      - dpkeys:/home/app/.aspnet/DataProtection-Keys
+
+    tmpfs:
+      - /tmp
+
+    networks:
+      - frontend
+      - backend
+
+    # Security
+    read_only: true
+
+    cap_drop:
+      - ALL
+
+    security_opt:
+      - no-new-privileges:true
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768M
+
+    logging: *default-logging
+
+  # -------------------------------------------------------------------
+  # SERVICE 3: Dozzle (Optional Monitoring)
+  # -------------------------------------------------------------------
+  dozzle:
+    profiles: ["monitoring"]
+    image: amir20/dozzle:latest
+    restart: unless-stopped
+
+    ports:
+      - "127.0.0.1:9999:8080"
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+    networks:
+      - frontend
+
+    logging: *default-logging
+
+# ---------------------------------------------------------------------
+# NETWORKS
+# ---------------------------------------------------------------------
+networks:
+  frontend:
+    driver: bridge
+
+  backend:
+    driver: bridge
+    internal: true
+
+# ---------------------------------------------------------------------
+# VOLUMES
+# ---------------------------------------------------------------------
+volumes:
+  sqldata:
+  dpkeys:

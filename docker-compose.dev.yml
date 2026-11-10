@@ -1,0 +1,28 @@
+# =====================================================================
+# FILE: docker-compose.dev.yml      (REPO ROOT)
+# =====================================================================
+# WHAT IT IS
+#   A small "add-on" file for DEVELOPING on your own computer. Compose can
+#   stack files: the second file changes or adds things on top of the first.
+#
+#     docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+#
+#   Never use this file on a server.
+#
+# WHAT IT ADDS
+#   1. A BIND MOUNT: your real folder src/HospitalManagement.Web/wwwroot is
+#      shown inside the container at /app/wwwroot. Edit site.css on your
+#      computer, press refresh in the browser -> you see the change at once,
+#      without rebuilding the image. (":ro" = the container may only read it.)
+#   2. ASP.NET "Development" mode (detailed error pages) and sample data.
+#
+# Explanation: docs/docker/05-storage-mounting.md and 06-compose.md
+# =====================================================================
+
+services:
+  web:
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Seed__SampleData: "true"
+    volumes:
+      - ./src/HospitalManagement.Web/wwwroot:/app/wwwroot:ro
