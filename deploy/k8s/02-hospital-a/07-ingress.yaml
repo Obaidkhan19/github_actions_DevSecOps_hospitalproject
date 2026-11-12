@@ -1,0 +1,27 @@
+# ingress for Hospital A Web Application
+# WHAT IS IMPLEMENTED
+#   One rule: hospital-a.localhost  ->  Service "web", port 80.
+#   Each hospital gets its own hostname, but they all share the same door
+#   (port 8088 on your computer, see 00-cluster/k3d-config.yaml).
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: web
+  namespace: hospital-a
+  labels:
+    app.kubernetes.io/instance: hospital-a
+    app.kubernetes.io/part-of: hospital-management
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: hospital-a.localhost
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 80

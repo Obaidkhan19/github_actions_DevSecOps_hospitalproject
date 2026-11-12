@@ -1,0 +1,17 @@
+# MAKE CLUSTER
+
+# HOW TO USE
+#   k3d cluster create --config deploy/k8s/00-cluster/k3d-config.yaml
+#   kubectl get nodes                 
+#   k3d cluster delete hospital        
+
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+metadata:
+  name: hospital          # cluster name; kubectl context becomes "k3d-hospital"
+servers: 1
+agents: 2
+ports:
+  - port: 8088:80         # your computer : cluster
+    nodeFilters:
+      - loadbalancer

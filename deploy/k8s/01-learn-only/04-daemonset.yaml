@@ -1,0 +1,19 @@
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: demo-ds
+  namespace: learn
+spec:
+  selector:
+    matchLabels:
+      app: demo-ds
+  template:
+    metadata:
+      labels:
+        app: demo-ds
+    spec:
+      containers:
+        - name: sleeper
+          image: busybox
+          command: ["sleep", "3600"]

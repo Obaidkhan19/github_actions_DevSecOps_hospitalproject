@@ -1,0 +1,34 @@
+# =====================================================================
+# FILE: 01-learn-only/08-vpa.yaml.example         (roadmap item 18: VPA)
+# =====================================================================
+# WHAT IT IS
+#   The Vertical Pod Autoscaler watches how much CPU and memory a pod
+#   REALLY uses and recommends (or sets) better requests and limits.
+#   "Vertical" = make one pod bigger or smaller, instead of adding pods.
+#
+# WHY THIS FILE ENDS IN ".example"
+#   VPA is NOT part of Kubernetes itself. It needs an extra installation
+#   (its own controllers and CRDs), so applying this file on our cluster
+#   would fail. Read it, do not run it.
+#
+# HPA OR VPA?
+#   - HPA: more pods when busy. Best for a stateless web app. We use it.
+#   - VPA: bigger pods. Changing a pod's size means restarting it. Best
+#     for things that cannot have more copies, like a single database.
+#   - Do not let both control CPU of the same pod: they fight.
+#   "updateMode: Off" below is the safe way to learn: VPA only RECOMMENDS
+#   numbers, and you read them with
+#     kubectl describe vpa web-vpa -n hospital-a
+# =====================================================================
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: web-vpa
+  namespace: hospital-a
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: web
+  updatePolicy:
+    updateMode: "Off"

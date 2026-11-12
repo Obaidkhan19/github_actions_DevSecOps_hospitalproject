@@ -1,0 +1,34 @@
+
+# WHAT IT IS
+#   The HorizontalPodAutoscaler (HPA) adds web pods when they are busy and
+#   removes them when it is quiet. "Horizontal" = more copies.
+
+# WHAT IS IMPLEMENTED
+#   - Always at least 2 pods, at most 4.
+#   - Target: 70 % of the CPU that each pod REQUESTED (100m in the
+#     Deployment, so about 70m). Above that, add a pod.
+#   HPA adds more pods. VPA (Vertical Pod Autoscaler) makes ONE pod bigger,
+
+# =====================================================================
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: web
+  namespace: hospital-a
+  labels:
+    app.kubernetes.io/instance: hospital-a
+    app.kubernetes.io/part-of: hospital-management
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: web
+  minReplicas: 2
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70

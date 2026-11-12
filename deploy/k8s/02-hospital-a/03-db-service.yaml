@@ -1,0 +1,23 @@
+# SERVICES
+# A StatefulSet uses a Headless Service to give its Pods stable DNS names, EG DB-0.DB
+#StatefulSet → Creates db-0 → Mounts PVC/PV → Starts SQL Server → Web Pods connect through db:1433.  
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+  namespace: hospital-a
+  labels:
+    app.kubernetes.io/name: hospital-db
+    app.kubernetes.io/instance: hospital-a
+    app.kubernetes.io/component: db
+    app.kubernetes.io/part-of: hospital-management
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: hospital-db
+    app.kubernetes.io/instance: hospital-a
+  ports:
+    - name: sql
+      port: 1433
+      targetPort: sql

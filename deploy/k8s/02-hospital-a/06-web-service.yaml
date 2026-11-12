@@ -1,0 +1,23 @@
+# ClusterIP Service for your Hospital A Web Pods.
+# Its purpose is to provide one stable internal address and distribute traffic across healthy Web Pods.
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  namespace: hospital-a
+  labels:
+    app.kubernetes.io/name: hospital-web
+    app.kubernetes.io/instance: hospital-a
+    app.kubernetes.io/component: web
+    app.kubernetes.io/part-of: hospital-management
+  annotations:
+    traefik.ingress.kubernetes.io/service.sticky.cookie: "true"
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: hospital-web
+    app.kubernetes.io/instance: hospital-a
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

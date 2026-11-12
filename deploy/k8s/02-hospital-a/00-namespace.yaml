@@ -1,0 +1,11 @@
+# MAKE NAMESPACE
+#   kubectl get pods -n hospital-a
+#   kubectl get pods -A -l app.kubernetes.io/instance=hospital-a
+# =====================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hospital-a
+  labels:
+    app.kubernetes.io/instance: hospital-a
+    app.kubernetes.io/part-of: hospital-management

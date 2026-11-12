@@ -1,0 +1,97 @@
+# Kubernetes Deployment to run your Hospital A Web Application using your Docker Hub image
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: hospital-a
+  labels:
+    app.kubernetes.io/name: hospital-web
+    app.kubernetes.io/instance: hospital-a
+    app.kubernetes.io/component: web
+    app.kubernetes.io/part-of: hospital-management
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: hospital-web
+      app.kubernetes.io/instance: hospital-a
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: hospital-web
+        app.kubernetes.io/instance: hospital-a
+        app.kubernetes.io/component: web
+        app.kubernetes.io/part-of: hospital-management
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1654           # the "app" user inside your image
+        runAsGroup: 1654
+      # imagePullSecrets:         # uncomment ONLY if your Docker Hub repository is private
+      #   - name: dockerhub       # (how to create it: see the README, "Troubleshooting")
+      containers:
+        - name: web
+          image: mukhann/hospital-web:v2      # your image; change the tag to update
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: web-config
+          env:
+            - name: MSSQL_SA_PASSWORD         # must come BEFORE the line that uses it
+              valueFrom:
+                secretKeyRef:
+                  name: hospital-secret
+                  key: MSSQL_SA_PASSWORD
+            - name: ConnectionStrings__DefaultConnection
+              value: "Server=db,1433;Database=HospitalDB;User Id=sa;Password=$(MSSQL_SA_PASSWORD);TrustServerCertificate=True;"
+            - name: Seed__AdminPassword
+              valueFrom:
+                secretKeyRef:
+                  name: hospital-secret
+                  key: Seed__AdminPassword
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 5
+            failureThreshold: 40            # up to 200 s to start
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 20
+            failureThreshold: 3
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: dpkeys
+              mountPath: /home/app/.aspnet/DataProtection-Keys
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: dpkeys
+          emptyDir: {}

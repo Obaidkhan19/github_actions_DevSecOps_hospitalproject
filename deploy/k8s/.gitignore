@@ -1,0 +1,3 @@
+# Real secrets are never committed. Only the *.yaml.example files are.
+# (This file only affects the folder deploy/k8s, so your root .gitignore stays unchanged.)
+*secret.yaml

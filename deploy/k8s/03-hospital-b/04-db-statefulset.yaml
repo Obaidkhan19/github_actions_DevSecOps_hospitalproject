@@ -1,0 +1,87 @@
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: db
+  namespace: hospital-b
+  labels:
+    app.kubernetes.io/name: hospital-db
+    app.kubernetes.io/instance: hospital-b
+    app.kubernetes.io/component: db
+    app.kubernetes.io/part-of: hospital-management
+spec:
+  serviceName: db                 # the headless Service from 03-db-service.yaml
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: hospital-db
+      app.kubernetes.io/instance: hospital-b
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: hospital-db
+        app.kubernetes.io/instance: hospital-b
+        app.kubernetes.io/component: db
+        app.kubernetes.io/part-of: hospital-management
+    spec:
+      securityContext:
+        fsGroup: 10001            # the disk is writable for the "mssql" group
+      containers:
+        - name: sqlserver
+          image: mcr.microsoft.com/mssql/server:2022-latest
+          ports:
+            - name: sql
+              containerPort: 1433
+          env:
+            - name: ACCEPT_EULA
+              value: "Y"
+            - name: MSSQL_PID
+              value: Developer    # free for development; production needs a licence
+            - name: MSSQL_SA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: hospital-secret
+                  key: MSSQL_SA_PASSWORD
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            allowPrivilegeEscalation: false
+            # SQL Server must write inside its container, so no read-only
+            # file system here (we use that for the web pods).
+          resources:
+            requests:             # what the scheduler reserves when placing the pod
+              cpu: 250m
+              memory: 1536Mi
+            limits:               # the ceiling: above it the container is killed (memory)
+              memory: 3Gi         # SQL Server refuses to start with less than ~2 GB
+          startupProbe:           # give SQL Server up to 150 s to start
+            tcpSocket:
+              port: sql
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:         # "can you answer a query?"
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -Q "SELECT 1" -b
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:          # "is the port still open?" (no password, no query)
+            tcpSocket:
+              port: sql
+            periodSeconds: 20
+            failureThreshold: 3
+          volumeMounts:
+            - name: data
+              mountPath: /var/opt/mssql
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]   # one node at a time may use this disk
+        storageClassName: local-path     # built into k3d; creates a folder on the node
+        resources:
+          requests:
+            storage: 2Gi

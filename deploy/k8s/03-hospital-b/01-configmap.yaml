@@ -1,0 +1,15 @@
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web-config
+  namespace: hospital-b
+  labels:
+    app.kubernetes.io/instance: hospital-b
+    app.kubernetes.io/part-of: hospital-management
+data:
+  Hospital__Name: "Hospital B"
+  Database__MigrateOnStartup: "true"      # create the tables when the app starts
+  Security__SecureCookies: "false"        # set "true" once you serve HTTPS (Phase 3)
+  Seed__AdminEmail: "admin@hospital-b.example"   # your login name: change it
+  Seed__SampleData: "true"                # synthetic doctors and patients
