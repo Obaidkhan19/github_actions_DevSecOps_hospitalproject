@@ -67,3 +67,13 @@ web:
   pull_policy: always
 
   docker compose up -d
+
+
+
+DOCKER IMAGE SCANNING USING TRIVY
+INSTALL TRIVY ON LAPTOP
+RUN 1 COMMAND = trivy image mukhann/hospital-web:v2
+full inspection =trivy image --scanners vuln --severity MEDIUM mukhann/hospital-web:v2
+
+ADD IN GITHUB ACTION  
+add trivy docker image scanning.yml in github workflows
