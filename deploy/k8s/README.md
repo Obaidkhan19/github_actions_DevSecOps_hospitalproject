@@ -1,3 +1,4 @@
+
 # Kubernetes, Phase 1: two hospitals on a k3d cluster
 
 ## 1. Install the tools (once)
@@ -39,7 +40,8 @@ nano /home/obaid-khan/Downloads/kubernetes-phase1/deploy/k8s/03-hospital-b/02-se
 kubectl apply -f /home/obaid-khan/Downloads/kubernetes-phase1/deploy/k8s/02-hospital-a/
 kubectl apply -f /home/obaid-khan/Downloads/kubernetes-phase1/deploy/k8s/03-hospital-b/
 
-kubectl get pods -A -w                                                # 4. watch (Ctrl+C to leave)
+kubectl get pods -A 
+kubectl get Deployment -A 
 
 EMAIL   nano /home/obaid-khan/Downloads/kubernetes-phase1/deploy/k8s/02-hospital-a/01-configmap.yaml
 PASSWORD about secret.yml

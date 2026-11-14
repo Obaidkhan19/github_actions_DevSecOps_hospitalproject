@@ -3,9 +3,7 @@
 
 ARG DOTNET_VERSION=10.0
 
-# ============================================================
-# STAGE 1: BUILD
-# ============================================================
+
 FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS build
 
 WORKDIR /src
@@ -23,9 +21,6 @@ RUN dotnet publish src/HospitalManagement.Web/HospitalManagement.Web.csproj \
       /p:UseAppHost=false
 
 
-# ============================================================
-# STAGE 2: TEST
-# ============================================================
 FROM build AS test
 
 COPY tests/HospitalManagement.Tests/HospitalManagement.Tests.csproj tests/HospitalManagement.Tests/
@@ -39,9 +34,7 @@ RUN dotnet test tests/HospitalManagement.Tests/HospitalManagement.Tests.csproj \
       --no-restore
 
 
-# ============================================================
-# STAGE 3: FINAL RUNTIME
-# ============================================================
+
 FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION}-alpine AS final
 
 # FIX: Install ICU globalization library

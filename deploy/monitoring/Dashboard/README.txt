@@ -1,0 +1,1 @@
+install bash install-dashboard.sh

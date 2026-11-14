@@ -40,6 +40,8 @@ defaultRules:
 #COMMANDS
 #helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 #helm repo update
+#helm uninstall monitoring -n monitoring
+
 #helm install monitoring prometheus-community/kube-prometheus-stack -n monitoring --create-namespace -f deploy/monitoring/values-monitoring.yaml --set grafana.adminPassword='cHospitalA@2027!'
 
 # see pods = kubectl get pods -n monitoring 
