@@ -1,0 +1,106 @@
+#Runs SQL Server with a disk that survives restarts. added a second disk called backups, so backup files are kept apart from the data.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: db
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: hospital-db
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: db
+    app.kubernetes.io/part-of: hospital-management
+  annotations:
+    ignore-check.kube-linter.io/no-read-only-root-fs: "SQL Server must write inside its container"
+spec:
+  serviceName: db
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: hospital-db
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: hospital-db
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: db
+        app.kubernetes.io/part-of: hospital-management
+    spec:
+      serviceAccountName: db
+      automountServiceAccountToken: false
+      securityContext:
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: sqlserver
+          image: {{ .Values.db.image }}
+          ports:
+            - name: sql
+              containerPort: 1433
+          env:
+            - name: ACCEPT_EULA
+              value: "Y"
+            - name: MSSQL_PID
+              value: Developer
+            - name: MSSQL_SA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secretName }}
+                  key: MSSQL_SA_PASSWORD
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            allowPrivilegeEscalation: false
+          resources:
+            requests:
+              cpu: {{ .Values.db.resources.requests.cpu }}
+              memory: {{ .Values.db.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.db.resources.limits.cpu | quote }}
+              memory: {{ .Values.db.resources.limits.memory }}
+          startupProbe:
+            tcpSocket:
+              port: sql
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -Q "SELECT 1" -b
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            tcpSocket:
+              port: sql
+            periodSeconds: 20
+            failureThreshold: 3
+          volumeMounts:
+            - name: data
+              mountPath: /var/opt/mssql
+{{- if .Values.backup.enabled }}
+            - name: backups
+              mountPath: /backups
+{{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: {{ .Values.db.storage.className }}
+        resources:
+          requests:
+            storage: {{ .Values.db.storage.size }}
+{{- if .Values.backup.enabled }}
+    - metadata:
+        name: backups
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: {{ .Values.db.storage.className }}
+        resources:
+          requests:
+            storage: {{ .Values.backup.storageSize }}
+{{- end }}

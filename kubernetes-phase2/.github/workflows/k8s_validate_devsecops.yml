@@ -1,0 +1,66 @@
+
+#    A spell-checker for your Kubernetes files. It runs BEFORE anything
+#    reaches a cluster and catches typos, wrong field names and unsafe
+#    settings.
+#    helm lint   
+#    kubeconform   
+#    kube-linter   
+#    trivy config  
+name: k8s_validate_devsecops
+
+on:
+  pull_request:
+    paths:
+      - "deploy/**"
+      - ".github/workflows/k8s_validate_devsecops.yml"
+  push:
+    paths:
+      - "deploy/**"
+      - ".github/workflows/k8s_validate_devsecops.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v7
+
+      - name: Helm lint
+        run: |
+          helm lint deploy/helm/hospital -f deploy/helm/values-hospital-a.yaml
+          helm lint deploy/helm/hospital -f deploy/helm/values-hospital-b.yaml
+
+      
+      - name: Render the chart
+        run: |
+          mkdir rendered
+          helm template hospital-a deploy/helm/hospital -n hospital-a -f deploy/helm/values-hospital-a.yaml > rendered/hospital-a.yaml
+          helm template hospital-b deploy/helm/hospital -n hospital-b -f deploy/helm/values-hospital-b.yaml > rendered/hospital-b.yaml
+
+      - name: Download kubeconform and kube-linter
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz kubeconform
+          curl -sSL https://github.com/stackrox/kube-linter/releases/latest/download/kube-linter-linux.tar.gz | tar xz kube-linter
+
+      # -strict   = unknown or misspelled fields are errors
+      - name: kubeconform (the rendered chart and the Phase 1 YAML)
+        run: ./kubeconform -strict -summary -kubernetes-version 1.31.0 rendered deploy/k8s/02-hospital-a deploy/k8s/03-hospital-b
+
+      - name: kube-linter
+        continue-on-error: true
+        run: ./kube-linter lint rendered --config deploy/helm/.kube-linter.yaml
+
+      - name: Trivy config scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: rendered
+          severity: HIGH,CRITICAL
+          format: table
+          exit-code: '0'

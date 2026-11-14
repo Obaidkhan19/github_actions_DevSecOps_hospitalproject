@@ -1,0 +1,70 @@
+# The hospital file overrides only the values it mentions  and everything else keeps its value from values.yaml.
+
+hospital:                    
+  name: "Hospital"
+  adminEmail: "admin@example.com"
+  sampleData: "true"
+  migrateOnStartup: "true"
+  secureCookies: "false"       
+
+secretName: hospital-secret    
+
+ingress:
+  enabled: true
+  className: traefik
+  host: hospital.localhost
+  stickyCookie: true         
+
+web:
+  image:
+    repository: mukhann/hospital-web
+    tag: v2
+    pullPolicy: IfNotPresent
+  imagePullSecret: ""           
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+    cpuPercent: 70
+  resources:
+    requests: {cpu: 100m, memory: 192Mi}
+    limits: {cpu: 500m, memory: 512Mi}
+
+db:
+  name: HospitalDB
+  image: mcr.microsoft.com/mssql/server:2022-latest
+  storage:
+    size: 2Gi
+    className: local-path
+  resources:
+    requests: {cpu: 250m, memory: 1536Mi}
+    limits: {cpu: "2", memory: 3Gi}
+
+backup:                      
+  enabled: true
+  schedule: "0 2 * * *"       
+  storageSize: 1Gi
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {cpu: 500m, memory: 512Mi}
+
+networkPolicy:                  # firewall between pods
+  enabled: true
+  ingressControllerNamespace: kube-system        
+  ingressControllerLabelKey: app.kubernetes.io/name
+  ingressControllerLabelValue: traefik
+
+rbac:
+  enabled: true             
+
+quota:                  
+  enabled: true
+  requestsCpu: "2"
+  requestsMemory: 4Gi
+  limitsCpu: "6"
+  limitsMemory: 8Gi
+  pods: "12"
+  pvcs: "4"
+
+limitRange:                     # defaults for containers that forget requests / limits
+  enabled: true

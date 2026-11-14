@@ -1,0 +1,20 @@
+#gives the database the stable name db (a headless Service). The web app connects to Server=db,1433, so it never needs the pod’s IP.
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: hospital-db
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: db
+    app.kubernetes.io/part-of: hospital-management
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: hospital-db
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: sql
+      port: 1433
+      targetPort: sql

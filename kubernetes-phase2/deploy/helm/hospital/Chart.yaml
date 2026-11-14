@@ -1,0 +1,7 @@
+# it just describes the chart, not the application itself
+apiVersion: v2
+name: hospital
+description: One hospital (web app + SQL Server + hardening) for a Kubernetes namespace
+type: application
+version: 0.1.0       
+appVersion: "v2"     

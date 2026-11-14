@@ -1,0 +1,67 @@
+#runs a short job every night at 02:00 that tells SQL Server to back up the database to the backups disk. It keeps one file per weekday, so it holds the last 7 days.
+{{- if .Values.backup.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: sql-backup
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: hospital-backup
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: backup
+    app.kubernetes.io/part-of: hospital-management
+  annotations:
+    ignore-check.kube-linter.io/no-read-only-root-fs: "sqlcmd tool; short-lived job"
+spec:
+  schedule: {{ .Values.backup.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 900
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: hospital-backup
+            app.kubernetes.io/instance: {{ .Release.Name }}
+            app.kubernetes.io/component: backup
+            app.kubernetes.io/part-of: hospital-management
+        spec:
+          restartPolicy: Never
+          serviceAccountName: db
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: backup
+              image: {{ .Values.db.image }}
+              env:
+                - name: MSSQL_SA_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.secretName }}
+                      key: MSSQL_SA_PASSWORD
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  DAY=$(date +%a)
+                  /opt/mssql-tools18/bin/sqlcmd -C -S db -U sa -P "$MSSQL_SA_PASSWORD" -b -Q "BACKUP DATABASE [{{ .Values.db.name }}] TO DISK = N'/backups/{{ .Values.db.name }}_${DAY}.bak' WITH INIT, COMPRESSION, CHECKSUM"
+                  echo "backup finished: {{ .Values.db.name }}_${DAY}.bak"
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: ["ALL"]
+              resources:
+                requests:
+                  cpu: {{ .Values.backup.resources.requests.cpu }}
+                  memory: {{ .Values.backup.resources.requests.memory }}
+                limits:
+                  cpu: {{ .Values.backup.resources.limits.cpu }}
+                  memory: {{ .Values.backup.resources.limits.memory }}
+{{- end }}

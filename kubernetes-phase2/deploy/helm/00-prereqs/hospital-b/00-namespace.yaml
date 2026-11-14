@@ -1,0 +1,11 @@
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hospital-b
+  labels:
+    app.kubernetes.io/instance: hospital-b
+    app.kubernetes.io/part-of: hospital-management
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted

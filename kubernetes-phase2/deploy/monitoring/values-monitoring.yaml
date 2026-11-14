@@ -1,0 +1,61 @@
+# monitoring logging tracking = prometheus and grafana for visulize
+#used to monitor the cluster 
+prometheus:
+  prometheusSpec:
+    retention: 3d                       
+    serviceMonitorSelectorNilUsesHelmValues: false  
+    podMonitorSelectorNilUsesHelmValues: false
+    resources:
+      requests: {cpu: 100m, memory: 400Mi}
+      limits: {memory: 1Gi}
+
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests: {cpu: 10m, memory: 32Mi}
+      limits: {memory: 128Mi}
+
+grafana:
+  ingress:                            
+    enabled: true
+    ingressClassName: traefik
+    hosts:
+      - grafana.localhost
+  resources:
+    requests: {cpu: 50m, memory: 256Mi}
+    limits: {memory: 768Mi}
+
+kubeEtcd: {enabled: false}
+kubeScheduler: {enabled: false}
+kubeControllerManager: {enabled: false}
+kubeProxy: {enabled: false}
+defaultRules:
+  rules:
+    etcd: false
+    kubeScheduler: false
+    kubeControllerManager: false
+    kubeProxy: false
+
+
+#COMMANDS
+#helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+#helm repo update
+#helm install monitoring prometheus-community/kube-prometheus-stack -n monitoring --create-namespace -f deploy/monitoring/values-monitoring.yaml --set grafana.adminPassword='cHospitalA@2027!'
+
+# see pods = kubectl get pods -n monitoring 
+#see resources = kubectl get all -n monitoring
+# see all services = kubectl get svc -n monitoring
+
+
+#Grafana = added datasources and dashboards
+
+# start port access of grafana = kubectl port-forward svc/monitoring-grafana 3000:80 -n monitoring   http://localhost:3000   admin / cHospitalA@2027!
+#make dashboard  
+
+# delete pod and see dashbaord = kubectl delete pod POD_NAME -n hospital-a
+
+
+#helm upgrade monitoring prometheus-community/kube-prometheus-stack-n monitoring -f deploy/monitoring/values-monitoring.yaml
+
+#PROMETHEUS = http://localhost:9090
+#kubectl port-forward svc/monitoring-kube-prometheus-prometheus 9090:9090 -n monitoring

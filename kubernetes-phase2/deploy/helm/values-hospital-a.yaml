@@ -1,0 +1,6 @@
+
+hospital:
+  name: "Heilbronn Hospital"
+  adminEmail: "admin@hospital-a.example"    
+ingress:
+  host: hospital-a.localhost

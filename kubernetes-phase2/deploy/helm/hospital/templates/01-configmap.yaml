@@ -1,0 +1,15 @@
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/part-of: hospital-management
+data:
+  Hospital__Name: {{ .Values.hospital.name | quote }}
+  Database__MigrateOnStartup: {{ .Values.hospital.migrateOnStartup | quote }}
+  Security__SecureCookies: {{ .Values.hospital.secureCookies | quote }}
+  Seed__AdminEmail: {{ .Values.hospital.adminEmail | quote }}
+  Seed__SampleData: {{ .Values.hospital.sampleData | quote }}

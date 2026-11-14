@@ -1,0 +1,41 @@
+NetworkPolicy — network security
+
+
+
+RBAC — access permissions
+
+
+
+Pod Security Standards — workload security
+
+
+
+ResourceQuota / LimitRange — resource control
+
+
+
+CronJob — automatic SQL backups
+
+
+
+Helm — reusable deployments
+
+
+
+Kustomize — learn and compare
+
+
+
+kubeconform / kube-linter / Trivy — validation and security scanning
+
+
+
+GitHub Actions — automated checks
+
+
+
+Prometheus / Grafana / Alertmanager — monitoring
+
+
+from phase 1 two folders stop being used to run anything: deploy/k8s/02-hospital-a/ and deploy/k8s/03-hospital-b/. The chart replaces them.
+from phase 1 only git and k3d is used now

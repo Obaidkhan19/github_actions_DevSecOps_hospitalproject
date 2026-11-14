@@ -1,0 +1,6 @@
+
+hospital:
+  name: "Hospital B"
+  adminEmail: "admin@hospital-b.example"    
+ingress:
+  host: hospital-b.localhost
